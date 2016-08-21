@@ -26,7 +26,7 @@
  * The ____FIFO_BUFFER_TYPE macro must be defined from the .c file it is used
  * from.
  *
- * One .c file can not use more than one fifo_buffer.
+ * One .c file can not use more than one fifo_buffer type.
  *
  */
 
@@ -79,8 +79,8 @@ fifo_enqueue(FifoBuffer* buffer, __FIFO_BUFFER_TYPE thing)
     buffer->things[buffer->tail_position] = thing;
     buffer->used ++;
 
-    // loop over
     if (buffer->tail_position + 1 == buffer->max)
+        // end of circonvolution
         buffer->tail_position = 0;
     else
         buffer->tail_position ++;
@@ -92,8 +92,8 @@ fifo_dequeue(FifoBuffer* buffer)
     __FIFO_BUFFER_TYPE thing = buffer->things[buffer->head_position];
     buffer->used --;
 
-    // loop over
     if (buffer->head_position + 1 == buffer->max)
+        // end of circonvolution
         buffer->head_position = 0;
     else
         buffer->head_position ++;
@@ -124,11 +124,13 @@ fifo_maybe_resize(FifoBuffer* buffer)
      */
     if (buffer->head_position > buffer->tail_position) {
         /*
+         * Can look like this:
          * [...............TH.........]
          *
-         * From head_position(H) to end of array
-         * THEN
-         * From begin of array to tail_position(T)
+         * Copy:
+         * - From head_position(H) to end of array
+         * Then:
+         * - From begin of array to tail_position(T)
          */
         memcpy(
                 new_things,
@@ -141,7 +143,7 @@ fifo_maybe_resize(FifoBuffer* buffer)
                 buffer->tail_position * sizeof(__FIFO_BUFFER_TYPE));
     } else {
         /*
-         * Then it must look like this:
+         * Must be:
          * [H........................T]
          * (Allready aligned)
          */
