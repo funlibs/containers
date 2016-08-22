@@ -30,8 +30,9 @@
  *
  */
 
-# include <string.h>
-# include <stdlib.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,10 +40,10 @@ extern "C" {
 
 typedef struct FifoBuffer {
     __FIFO_BUFFER_TYPE* things;
-    int   used;
-    int   max;
-    int   tail_position;
-    int   head_position;
+    int used;
+    int max;
+    int tail_position;
+    int head_position;
 } FifoBuffer;
 
 void fifo_maybe_realloc_buffer(FifoBuffer* buffer);
@@ -86,10 +87,14 @@ fifo_enqueue(FifoBuffer* buffer, __FIFO_BUFFER_TYPE thing)
         buffer->tail_position ++;
 }
 
-__FIFO_BUFFER_TYPE
-fifo_dequeue(FifoBuffer* buffer)
+int
+fifo_dequeue(FifoBuffer* buffer, __FIFO_BUFFER_TYPE* value)
 {
-    __FIFO_BUFFER_TYPE thing = buffer->things[buffer->head_position];
+    if (buffer->used == 0)
+        return -1;
+
+    *value = buffer->things[buffer->head_position];
+
     buffer->used --;
 
     if (buffer->head_position + 1 == buffer->max)
@@ -98,7 +103,7 @@ fifo_dequeue(FifoBuffer* buffer)
     else
         buffer->head_position ++;
 
-    return thing;
+    return 0;
 }
 
 /*
@@ -111,9 +116,11 @@ fifo_maybe_resize(FifoBuffer* buffer)
     void* new_things;
     int head_end, tail_end, copy_head_size, copy_tail_size, new_size;
 
+    // TODO is this correct?
     if (buffer->used < buffer->max)
         return;
 
+    printf("Will resize\n");
     new_size = buffer->max * 2;
     new_things = malloc(new_size * sizeof(__FIFO_BUFFER_TYPE));
     if (new_things == NULL)
@@ -122,15 +129,17 @@ fifo_maybe_resize(FifoBuffer* buffer)
     /*
      * Put head at 0 and reset head_position tail_position and max.
      */
+    // TODO is this correct?
     if (buffer->head_position > buffer->tail_position) {
+        printf("Not alligned\n");
         /*
          * Can look like this:
-         * [...............TH.........]
-         *
+         * [...............T..........]
+         *                 H
          * Copy:
-         * - From head_position(H) to end of array
-         * Then:
          * - From begin of array to tail_position(T)
+         * Then:
+         * - From head_position(H) to end of array
          */
         memcpy(
                 new_things,
@@ -142,11 +151,14 @@ fifo_maybe_resize(FifoBuffer* buffer)
                 &buffer->things[0],
                 buffer->tail_position * sizeof(__FIFO_BUFFER_TYPE));
     } else {
+        // TODO is this correct?
         /*
          * Must be:
-         * [H........................T]
+         * [H.........................]
+         *  T
          * (Allready aligned)
          */
+        printf("Allready alligned\n");
         memcpy(
             new_things,
             &buffer->things[0],

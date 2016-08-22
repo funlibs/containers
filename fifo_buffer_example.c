@@ -23,14 +23,48 @@
  */
 #include <stdio.h>
 
-#define __FIFO_BUFFER_TYPE float
+#define __FIFO_BUFFER_TYPE int
 #include <fifo_buffer.h>
 
 
 int
 main(int argc, char* argv[])
 {
-    printf("hello");
+    int i, j, r;
+
+    FifoBuffer buffer = fifo_new(10);
+
+    for (i=0; i<5; i++) {
+        fifo_enqueue(&buffer, i);
+        printf("enqueue %i\n", i);
+    }
+
+    for (i=0; i<4; i++) {
+        fifo_dequeue(&buffer, &i);
+        printf("dequeue %i\n", i);
+    }
+
+
+    for (i=0; i<10; i++) {
+        fifo_enqueue(&buffer, i);
+        printf("enqueue %i\n", i);
+    }
+
+
+    for (i=0; i<100; i++) {
+        fifo_enqueue(&buffer, i);
+        printf("enqueue %i\n", i);
+    }
+
+    while (1) {
+        r = fifo_dequeue(&buffer, &j);
+        if (r != 0)
+            break;
+
+        printf("dequeu all %i\n", j);
+    }
+
+    printf("end");
 
     return 0;
 }
