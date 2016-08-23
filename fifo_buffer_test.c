@@ -1,8 +1,6 @@
 /*
  * MIT License
  *
- * CARGO Copyright (c) 2016 Sebastien Serre <ssbx@sysmo.io>.
- *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
@@ -24,8 +22,18 @@
 #include <stdio.h>
 
 #define __FIFO_BUFFER_TYPE int
+#define __FIFO_INITIAL_SIZE 10
 #include <fifo_buffer.h>
 
+void debug_fifo_buffer(FifoBuffer* buffer)
+{
+    printf("\n");
+    printf("used %i\n", buffer->used);
+    printf("max %i\n", buffer->max);
+    printf("tail_position %i\n", buffer->tail_position);
+    printf("head_position %i\n", buffer->head_position);
+
+}
 
 int
 main(int argc, char* argv[])
@@ -36,35 +44,57 @@ main(int argc, char* argv[])
 
     for (i=0; i<5; i++) {
         fifo_enqueue(&buffer, i);
-        printf("enqueue %i\n", i);
     }
 
-    for (i=0; i<4; i++) {
-        fifo_dequeue(&buffer, &i);
-        printf("dequeue %i\n", i);
-    }
+    fifo_dequeue(&buffer, &j);
 
-
-    for (i=0; i<10; i++) {
+    for (i=5; i<11; i++) {
         fifo_enqueue(&buffer, i);
-        printf("enqueue %i\n", i);
     }
 
 
-    for (i=0; i<100; i++) {
+    fifo_dequeue(&buffer, &j);
+    //debug_fifo_buffer(&buffer);
+
+    for (i=11; i<30; i++) {
         fifo_enqueue(&buffer, i);
-        printf("enqueue %i\n", i);
     }
 
-    while (1) {
-        r = fifo_dequeue(&buffer, &j);
-        if (r != 0)
-            break;
+    fifo_dequeue(&buffer, &j);
+    fifo_dequeue(&buffer, &j);
+    fifo_dequeue(&buffer, &j);
+    fifo_dequeue(&buffer, &j);
+    fifo_dequeue(&buffer, &j);
+    //debug_fifo_buffer(&buffer);
 
-        printf("dequeu all %i\n", j);
+    for (i=30; i<100; i++) {
+        fifo_enqueue(&buffer, i);
     }
 
-    printf("end");
+    fifo_dequeue(&buffer, &i);
+    while (fifo_dequeue(&buffer, &j) == 0) {
+        ++i;
+        if (i != j)
+            abort();
+    }
+
+    fifo_free(&buffer);
+
+    printf("Unaligned test OK\n");
+
+    buffer = fifo_new();
+    for (i=0; i< 100; i++)
+        fifo_enqueue(&buffer, i);
+
+    fifo_dequeue(&buffer, &i);
+    while (fifo_dequeue(&buffer, &j) == 0) {
+        ++i;
+        if (i != j)
+            abort();
+    }
+
+    printf("Aligned test OK\n");
+
 
     return 0;
 }

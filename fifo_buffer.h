@@ -20,13 +20,26 @@
  * SOFTWARE.
  */
 
+#ifndef FIFO_BUFFER
+#define FIFO_BUFFER
+
+#ifndef __FIFO_INITIAL_SIZE
+#define __FIFO_INITIAL_SIZE 100
+#endif
+
 /*
- * No #ifdef FIFO_BUFFER here.
  *
- * The ____FIFO_BUFFER_TYPE macro must be defined from the .c file it is used
+ * A FifoBuffer is a dynamic sized circular FIFO buffer.
+ *
+ * __FIFO_BUFFER_TYPE macro must be defined from the .c file it is used
  * from.
+ * __FIFO_INITIAL_SIZE configure the initial size of the buffer.
  *
  * One .c file can not use more than one fifo_buffer type.
+ *
+ * In this code, we add to tail and consume from head.
+ *
+ * TODO fifo_maybe_shrink(FifoBuffer*) (maybe).
  *
  */
 
@@ -46,25 +59,30 @@ typedef struct FifoBuffer {
     int head_position;
 } FifoBuffer;
 
-void fifo_maybe_realloc_buffer(FifoBuffer* buffer);
+FifoBuffer fifo_new();
+void fifo_free(FifoBuffer*);
+void fifo_enqueue(FifoBuffer*,__FIFO_BUFFER_TYPE);
+int  fifo_dequeue(FifoBuffer*, __FIFO_BUFFER_TYPE*);
+void fifo_maybe_expand(FifoBuffer*);
 
 /*
  * Return a new FifoBuffer.
  * Every time FifoBuffer reach its max size, it is expanded to twice the current
  * size.
+ *
  */
 FifoBuffer
-fifo_new(int initial_size)
+fifo_new()
 {
     void* things;
     FifoBuffer fifo_buffer;
 
-    things = malloc(sizeof(__FIFO_BUFFER_TYPE) * initial_size);
+    things = malloc(sizeof(__FIFO_BUFFER_TYPE) * __FIFO_INITIAL_SIZE);
     if (things == NULL)
         abort();
 
     fifo_buffer.used = 0;
-    fifo_buffer.max = initial_size;
+    fifo_buffer.max = __FIFO_INITIAL_SIZE;
     fifo_buffer.tail_position = 0;
     fifo_buffer.head_position = 0;
     fifo_buffer.things = things;
@@ -72,30 +90,40 @@ fifo_new(int initial_size)
     return fifo_buffer;
 }
 
+void
+fifo_free(FifoBuffer* buffer)
+{
+    free(buffer->things);
+}
 
 void
-fifo_enqueue(FifoBuffer* buffer, __FIFO_BUFFER_TYPE thing)
+fifo_enqueue(
+        FifoBuffer*        buffer,
+        __FIFO_BUFFER_TYPE thing)
+
 {
-    fifo_maybe_resize(buffer);
     buffer->things[buffer->tail_position] = thing;
-    buffer->used ++;
+    ++ buffer->used;
 
     if (buffer->tail_position + 1 == buffer->max)
         // end of circonvolution
         buffer->tail_position = 0;
     else
         buffer->tail_position ++;
+    fifo_maybe_expand(buffer);
+
 }
 
 int
-fifo_dequeue(FifoBuffer* buffer, __FIFO_BUFFER_TYPE* value)
+fifo_dequeue(
+        FifoBuffer*         buffer,
+        __FIFO_BUFFER_TYPE* value)
 {
     if (buffer->used == 0)
         return -1;
 
     *value = buffer->things[buffer->head_position];
-
-    buffer->used --;
+    -- buffer->used;
 
     if (buffer->head_position + 1 == buffer->max)
         // end of circonvolution
@@ -108,19 +136,17 @@ fifo_dequeue(FifoBuffer* buffer, __FIFO_BUFFER_TYPE* value)
 
 /*
  * If required, realoc and realign new FifoBuffer for the new buffer size.
- * Realigning meaning puting the head at buffer[0].
+ * Realigning meaning puting the head (where we consume from) at buffer[0].
  */
-int
-fifo_maybe_resize(FifoBuffer* buffer)
+void
+fifo_maybe_expand(FifoBuffer* buffer)
 {
-    void* new_things;
-    int head_end, tail_end, copy_head_size, copy_tail_size, new_size;
+    int current_pos, new_size;
+    __FIFO_BUFFER_TYPE* new_things;
 
-    // TODO is this correct?
     if (buffer->used < buffer->max)
         return;
 
-    printf("Will resize\n");
     new_size = buffer->max * 2;
     new_things = malloc(new_size * sizeof(__FIFO_BUFFER_TYPE));
     if (new_things == NULL)
@@ -129,46 +155,39 @@ fifo_maybe_resize(FifoBuffer* buffer)
     /*
      * Put head at 0 and reset head_position tail_position and max.
      */
-    // TODO is this correct?
-    if (buffer->head_position > buffer->tail_position) {
-        printf("Not alligned\n");
+    if (buffer->head_position > 0) {
         /*
          * Can look like this:
          * [...............T..........]
          *                 H
          * Copy:
-         * - From begin of array to tail_position(T)
+         * - From head to end of array
          * Then:
-         * - From head_position(H) to end of array
+         * - From begin of array to head
          */
+        current_pos = buffer->head_position;
         memcpy(
-                new_things,
-                &buffer->things[buffer->head_position],
-                (buffer->max -
-                 buffer->head_position) * sizeof(__FIFO_BUFFER_TYPE));
+                &new_things[0],
+                &buffer->things[current_pos],
+                (buffer->max - current_pos) * sizeof(__FIFO_BUFFER_TYPE));
         memcpy(
-                new_things,
+                &new_things[buffer->max - current_pos],
                 &buffer->things[0],
-                buffer->tail_position * sizeof(__FIFO_BUFFER_TYPE));
+                current_pos * sizeof(__FIFO_BUFFER_TYPE));
     } else {
-        // TODO is this correct?
-        /*
-         * Must be:
+        /* head_position is 0 it must be:
          * [H.........................]
          *  T
          * (Allready aligned)
          */
-        printf("Allready alligned\n");
-        memcpy(
-            new_things,
-            &buffer->things[0],
-            buffer->max * sizeof(__FIFO_BUFFER_TYPE));
+        memcpy(&new_things[0], &buffer->things[0],
+                buffer->max * sizeof(__FIFO_BUFFER_TYPE));
     }
 
     free(buffer->things);
     buffer->things = new_things;
-    buffer->head_position = 0;
     buffer->tail_position = buffer->max;
+    buffer->head_position = 0;
     buffer->max = new_size;
 }
 
@@ -176,3 +195,4 @@ fifo_maybe_resize(FifoBuffer* buffer)
 }
 #endif // __cplusplus
 
+#endif // FIFO_BUFFER

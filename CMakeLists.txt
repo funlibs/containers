@@ -3,6 +3,9 @@ project (FifoBuffer)
 
 include_directories (.)
 
-add_executable (fifo_buffer_example
-  fifo_buffer_example.c
+add_executable (fifo_buffer_test
+  fifo_buffer_test.c
   fifo_buffer.h)
+
+enable_testing()
+add_test(NAME All COMMAND fifo_buffer_test)
