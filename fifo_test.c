@@ -21,11 +21,11 @@
  */
 #include <stdio.h>
 
-#define __FIFO_BUFFER_TYPE int
+#define __FIFO_CONTAINER_TYPE int
 #define __FIFO_INITIAL_SIZE 10
-#include <fifo_buffer.h>
+#include <fifo.h>
 
-void debug_fifo_buffer(FifoBuffer* buffer)
+void debug_fifo_buffer(FifoContainer* buffer)
 {
     printf("\n");
     printf("used %i\n", buffer->used);
@@ -40,39 +40,39 @@ main(int argc, char* argv[])
 {
     int i, j, r;
 
-    FifoBuffer buffer = fifo_new(10);
+    FifoContainer buffer = fifo_new(10);
 
     for (i=0; i<5; i++) {
-        fifo_enqueue(&buffer, i);
+        fifo_push(&buffer, i);
     }
 
-    fifo_dequeue(&buffer, &j);
+    fifo_pop(&buffer, &j);
 
     for (i=5; i<11; i++) {
-        fifo_enqueue(&buffer, i);
+        fifo_push(&buffer, i);
     }
 
 
-    fifo_dequeue(&buffer, &j);
+    fifo_pop(&buffer, &j);
     //debug_fifo_buffer(&buffer);
 
     for (i=11; i<30; i++) {
-        fifo_enqueue(&buffer, i);
+        fifo_push(&buffer, i);
     }
 
-    fifo_dequeue(&buffer, &j);
-    fifo_dequeue(&buffer, &j);
-    fifo_dequeue(&buffer, &j);
-    fifo_dequeue(&buffer, &j);
-    fifo_dequeue(&buffer, &j);
+    fifo_pop(&buffer, &j);
+    fifo_pop(&buffer, &j);
+    fifo_pop(&buffer, &j);
+    fifo_pop(&buffer, &j);
+    fifo_pop(&buffer, &j);
     //debug_fifo_buffer(&buffer);
 
     for (i=30; i<100; i++) {
-        fifo_enqueue(&buffer, i);
+        fifo_push(&buffer, i);
     }
 
-    fifo_dequeue(&buffer, &i);
-    while (fifo_dequeue(&buffer, &j) == 0) {
+    fifo_pop(&buffer, &i);
+    while (fifo_pop(&buffer, &j) == 0) {
         ++i;
         if (i != j)
             abort();
@@ -84,10 +84,10 @@ main(int argc, char* argv[])
 
     buffer = fifo_new();
     for (i=0; i< 100; i++)
-        fifo_enqueue(&buffer, i);
+        fifo_push(&buffer, i);
 
-    fifo_dequeue(&buffer, &i);
-    while (fifo_dequeue(&buffer, &j) == 0) {
+    fifo_pop(&buffer, &i);
+    while (fifo_pop(&buffer, &j) == 0) {
         ++i;
         if (i != j)
             abort();

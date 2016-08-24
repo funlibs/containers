@@ -20,8 +20,8 @@
  * SOFTWARE.
  */
 
-#ifndef FIFO_BUFFER
-#define FIFO_BUFFER
+#ifndef FIFO_CONTAINER
+#define FIFO_CONTAINER
 
 #ifndef __FIFO_INITIAL_SIZE
 #define __FIFO_INITIAL_SIZE 100
@@ -29,17 +29,17 @@
 
 /*
  *
- * A FifoBuffer is a dynamic sized circular FIFO buffer.
+ * A FifoContainer is a dynamic sized circular FIFO buffer.
  *
- * __FIFO_BUFFER_TYPE macro must be defined from the .c file it is used
+ * __FIFO_CONTAINER_TYPE macro must be defined from the .c file it is used
  * from.
  * __FIFO_INITIAL_SIZE configure the initial size of the buffer.
  *
  * One .c file can not use more than one fifo_buffer type.
  *
- * In this code, we add to tail and consume from head.
+ * In this code, we add (push) to tail and consume (pop) from head.
  *
- * TODO fifo_maybe_shrink(FifoBuffer*) (maybe).
+ * TODO static void fifo_maybe_shrink(FifoContainer*) (maybe).
  *
  */
 
@@ -51,33 +51,33 @@
 extern "C" {
 #endif // __cplusplus
 
-typedef struct FifoBuffer {
-    __FIFO_BUFFER_TYPE* things;
+typedef struct FifoContainer {
+    __FIFO_CONTAINER_TYPE* things;
     int used;
     int max;
     int tail_position;
     int head_position;
-} FifoBuffer;
+} FifoContainer;
 
-FifoBuffer fifo_new();
-void fifo_free(FifoBuffer*);
-void fifo_enqueue(FifoBuffer*,__FIFO_BUFFER_TYPE);
-int  fifo_dequeue(FifoBuffer*, __FIFO_BUFFER_TYPE*);
-void fifo_maybe_expand(FifoBuffer*);
+FifoContainer fifo_new();
+void fifo_push(FifoContainer*, __FIFO_CONTAINER_TYPE);
+int  fifo_pop(FifoContainer*, __FIFO_CONTAINER_TYPE*);
+void fifo_free(FifoContainer*);
+static void fifo_maybe_expand(FifoContainer*);
 
 /*
- * Return a new FifoBuffer.
- * Every time FifoBuffer reach its max size, it is expanded to twice the current
- * size.
+ * Return a new FifoContainer.
+ * Every time FifoContainer reach its max size, it is expanded to twice
+ * the current size.
  *
  */
-FifoBuffer
+FifoContainer
 fifo_new()
 {
     void* things;
-    FifoBuffer fifo_buffer;
+    FifoContainer fifo_buffer;
 
-    things = malloc(sizeof(__FIFO_BUFFER_TYPE) * __FIFO_INITIAL_SIZE);
+    things = malloc(sizeof(__FIFO_CONTAINER_TYPE) * __FIFO_INITIAL_SIZE);
     if (things == NULL)
         abort();
 
@@ -91,15 +91,15 @@ fifo_new()
 }
 
 void
-fifo_free(FifoBuffer* buffer)
+fifo_free(FifoContainer* buffer)
 {
     free(buffer->things);
 }
 
 void
-fifo_enqueue(
-        FifoBuffer*        buffer,
-        __FIFO_BUFFER_TYPE thing)
+fifo_push(
+        FifoContainer*        buffer,
+        __FIFO_CONTAINER_TYPE thing)
 
 {
     buffer->things[buffer->tail_position] = thing;
@@ -115,9 +115,9 @@ fifo_enqueue(
 }
 
 int
-fifo_dequeue(
-        FifoBuffer*         buffer,
-        __FIFO_BUFFER_TYPE* value)
+fifo_pop(
+        FifoContainer*         buffer,
+        __FIFO_CONTAINER_TYPE* value)
 {
     if (buffer->used == 0)
         return -1;
@@ -135,20 +135,21 @@ fifo_dequeue(
 }
 
 /*
- * If required, realoc and realign new FifoBuffer for the new buffer size.
+ * If required, realoc and realign new FifoContainer for the new buffer size.
  * Realigning meaning puting the head (where we consume from) at buffer[0].
  */
+static
 void
-fifo_maybe_expand(FifoBuffer* buffer)
+fifo_maybe_expand(FifoContainer* buffer)
 {
     int current_pos, new_size;
-    __FIFO_BUFFER_TYPE* new_things;
+    __FIFO_CONTAINER_TYPE* new_things;
 
     if (buffer->used < buffer->max)
         return;
 
     new_size = buffer->max * 2;
-    new_things = malloc(new_size * sizeof(__FIFO_BUFFER_TYPE));
+    new_things = malloc(new_size * sizeof(__FIFO_CONTAINER_TYPE));
     if (new_things == NULL)
         abort();
 
@@ -169,11 +170,11 @@ fifo_maybe_expand(FifoBuffer* buffer)
         memcpy(
                 &new_things[0],
                 &buffer->things[current_pos],
-                (buffer->max - current_pos) * sizeof(__FIFO_BUFFER_TYPE));
+                (buffer->max - current_pos) * sizeof(__FIFO_CONTAINER_TYPE));
         memcpy(
                 &new_things[buffer->max - current_pos],
                 &buffer->things[0],
-                current_pos * sizeof(__FIFO_BUFFER_TYPE));
+                current_pos * sizeof(__FIFO_CONTAINER_TYPE));
     } else {
         /* head_position is 0 it must be:
          * [H.........................]
@@ -181,7 +182,7 @@ fifo_maybe_expand(FifoBuffer* buffer)
          * (Allready aligned)
          */
         memcpy(&new_things[0], &buffer->things[0],
-                buffer->max * sizeof(__FIFO_BUFFER_TYPE));
+                buffer->max * sizeof(__FIFO_CONTAINER_TYPE));
     }
 
     free(buffer->things);
@@ -195,4 +196,4 @@ fifo_maybe_expand(FifoBuffer* buffer)
 }
 #endif // __cplusplus
 
-#endif // FIFO_BUFFER
+#endif // FIFO_CONTAINER
