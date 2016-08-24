@@ -37,7 +37,7 @@
  *
  * One .c file can not use more than one fifo_buffer type.
  *
- * In this code, we add (push) to tail and consume (pop) from head.
+ * In this code, we add (enqueue) to tail and consume (dequeue) from head.
  *
  * TODO static void fifo_maybe_shrink(FifoContainer*) (maybe).
  *
@@ -60,8 +60,8 @@ typedef struct FifoContainer {
 } FifoContainer;
 
 FifoContainer fifo_new();
-void fifo_push(FifoContainer*, __FIFO_CONTAINER_TYPE);
-int  fifo_pop(FifoContainer*, __FIFO_CONTAINER_TYPE*);
+void fifo_enqueue(FifoContainer*, __FIFO_CONTAINER_TYPE);
+int  fifo_dequeue(FifoContainer*, __FIFO_CONTAINER_TYPE*);
 void fifo_free(FifoContainer*);
 static void fifo_maybe_expand(FifoContainer*);
 
@@ -97,7 +97,7 @@ fifo_free(FifoContainer* buffer)
 }
 
 void
-fifo_push(
+fifo_enqueue(
         FifoContainer*        buffer,
         __FIFO_CONTAINER_TYPE thing)
 
@@ -115,7 +115,7 @@ fifo_push(
 }
 
 int
-fifo_pop(
+fifo_dequeue(
         FifoContainer*         buffer,
         __FIFO_CONTAINER_TYPE* value)
 {

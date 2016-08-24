@@ -38,63 +38,71 @@ void debug_fifo_buffer(FifoContainer* buffer)
 int
 main(int argc, char* argv[])
 {
+    if (argc < 2)
+        return 1;
+
+    if (strcmp(argv[1], "fifo") == 0)
+        return run_fifo_test();
+
+    return 1;
+}
+
+int
+run_fifo_test()
+{
     int i, j, r;
+    FifoContainer buffer;
 
-    FifoContainer buffer = fifo_new(10);
+    /*
+     * Unaligned test
+     */
+    buffer = fifo_new(10);
+    for (i=0; i<5; i++)
+        fifo_enqueue(&buffer, i);
 
-    for (i=0; i<5; i++) {
-        fifo_push(&buffer, i);
-    }
+    fifo_dequeue(&buffer, &j);
 
-    fifo_pop(&buffer, &j);
+    for (i=5; i<11; i++)
+        fifo_enqueue(&buffer, i);
 
-    for (i=5; i<11; i++) {
-        fifo_push(&buffer, i);
-    }
+    fifo_dequeue(&buffer, &j);
 
+    for (i=11; i<30; i++)
+        fifo_enqueue(&buffer, i);
 
-    fifo_pop(&buffer, &j);
-    //debug_fifo_buffer(&buffer);
+    fifo_dequeue(&buffer, &j);
+    fifo_dequeue(&buffer, &j);
+    fifo_dequeue(&buffer, &j);
+    fifo_dequeue(&buffer, &j);
+    fifo_dequeue(&buffer, &j);
 
-    for (i=11; i<30; i++) {
-        fifo_push(&buffer, i);
-    }
+    for (i=30; i<100; i++)
+        fifo_enqueue(&buffer, i);
 
-    fifo_pop(&buffer, &j);
-    fifo_pop(&buffer, &j);
-    fifo_pop(&buffer, &j);
-    fifo_pop(&buffer, &j);
-    fifo_pop(&buffer, &j);
-    //debug_fifo_buffer(&buffer);
-
-    for (i=30; i<100; i++) {
-        fifo_push(&buffer, i);
-    }
-
-    fifo_pop(&buffer, &i);
-    while (fifo_pop(&buffer, &j) == 0) {
+    fifo_dequeue(&buffer, &i);
+    while (fifo_dequeue(&buffer, &j) == 0) {
         ++i;
         if (i != j)
             abort();
     }
 
     fifo_free(&buffer);
-
     printf("Unaligned test OK\n");
 
+    /*
+     * Aligned test
+     */
     buffer = fifo_new();
     for (i=0; i< 100; i++)
-        fifo_push(&buffer, i);
+        fifo_enqueue(&buffer, i);
 
-    fifo_pop(&buffer, &i);
-    while (fifo_pop(&buffer, &j) == 0) {
+    fifo_dequeue(&buffer, &i);
+    while (fifo_dequeue(&buffer, &j) == 0) {
         ++i;
         if (i != j)
             abort();
     }
-
     printf("Aligned test OK\n");
-
 
     return 0;
 }
