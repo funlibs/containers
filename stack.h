@@ -119,20 +119,16 @@ stack_realloc(StackContainer* buffer, ReallocType rtype)
     size_t new_max;
     int new_shrink;
 
-    if (rtype == SHRINK) {
-        printf("shrink\n");
+    if (rtype == SHRINK)
         new_max = buffer->max / 2;
-    } else {
-        printf("expand\n");
+    else
         new_max = buffer->max * 2;
-    }
 
     new_things = realloc(
             &buffer->things[0], new_max * sizeof(__STACK_CONTAINER_TYPE));
 
-    if (new_things == NULL) {
+    if (new_things == NULL)
         abort();
-    }
 
     if (buffer->things != new_things)
         buffer->things = new_things;
@@ -142,7 +138,11 @@ stack_realloc(StackContainer* buffer, ReallocType rtype)
         new_shrink = -1;
 
     buffer->max = new_max;
-    buffer->shrink_limit = new_shrink;  // when reached, divide by two
+
+    /*
+     * when shrink_limit reached, divide by two
+     */
+    buffer->shrink_limit = new_shrink;
 }
 
 #ifdef __cplusplus
