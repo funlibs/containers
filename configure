@@ -10,9 +10,6 @@ all:
 clean_all:
 	rm -rf build; rm Makefile
 
-run: all
-	./build/gen_server_example
-
 %:
 	make -C build $@
 ' > Makefile

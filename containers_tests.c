@@ -21,11 +21,15 @@
  */
 #include <stdio.h>
 
-#define __FIFO_CONTAINER_TYPE int
-#define __FIFO_INITIAL_SIZE 10
-#include <fifo.h>
+#define __QUEUE_CONTAINER_TYPE int
+#define __QUEUE_INITIAL_SIZE 10
+#include <queue.h>
 
-void debug_fifo_buffer(FifoContainer* buffer)
+#define __STACK_CONTAINER_TYPE int
+#define __STACK_INITIAL_SIZE 10
+#include <stack.h>
+
+void debug_queue_buffer(QueueContainer* buffer)
 {
     printf("\n");
     printf("used %i\n", buffer->used);
@@ -41,67 +45,97 @@ main(int argc, char* argv[])
     if (argc < 2)
         return 1;
 
-    if (strcmp(argv[1], "fifo") == 0)
-        return run_fifo_test();
+    if (strcmp(argv[1], "queue") == 0)
+        return run_queue_test();
+
+    if (strcmp(argv[1], "stack") == 0)
+        return run_stack_test();
 
     return 1;
 }
 
 int
-run_fifo_test()
+run_stack_test()
+{
+    int i, j;
+    StackContainer stack;
+
+    stack = stack_new();
+    i = 0;
+
+    for (i=0; i < 10; i++) {
+        stack_push(&stack, i);
+        printf("stack %i\n", i);
+    }
+
+    while (stack_pop(&stack, &j) != 0) {
+        --i;
+        if (i != j)
+            abort();
+    }
+    stack_free(&stack);
+
+    printf("Stack test OK\n");
+    return 0;
+}
+
+int
+run_queue_test()
 {
     int i, j, r;
-    FifoContainer buffer;
+    QueueContainer queue;
 
     /*
      * Unaligned test
      */
-    buffer = fifo_new(10);
+    queue = queue_new(10);
     for (i=0; i<5; i++)
-        fifo_enqueue(&buffer, i);
+        queue_enqueue(&queue, i);
 
-    fifo_dequeue(&buffer, &j);
+    queue_dequeue(&queue, &j);
 
     for (i=5; i<11; i++)
-        fifo_enqueue(&buffer, i);
+        queue_enqueue(&queue, i);
 
-    fifo_dequeue(&buffer, &j);
+    queue_dequeue(&queue, &j);
 
     for (i=11; i<30; i++)
-        fifo_enqueue(&buffer, i);
+        queue_enqueue(&queue, i);
 
-    fifo_dequeue(&buffer, &j);
-    fifo_dequeue(&buffer, &j);
-    fifo_dequeue(&buffer, &j);
-    fifo_dequeue(&buffer, &j);
-    fifo_dequeue(&buffer, &j);
+    queue_dequeue(&queue, &j);
+    queue_dequeue(&queue, &j);
+    queue_dequeue(&queue, &j);
+    queue_dequeue(&queue, &j);
+    queue_dequeue(&queue, &j);
 
     for (i=30; i<100; i++)
-        fifo_enqueue(&buffer, i);
+        queue_enqueue(&queue, i);
 
-    fifo_dequeue(&buffer, &i);
-    while (fifo_dequeue(&buffer, &j) == 0) {
+    queue_dequeue(&queue, &i);
+    while (queue_dequeue(&queue, &j) != 0) {
         ++i;
         if (i != j)
             abort();
     }
 
-    fifo_free(&buffer);
+    queue_free(&queue);
     printf("Unaligned test OK\n");
+
 
     /*
      * Aligned test
      */
-    buffer = fifo_new();
+    queue = queue_new();
     for (i=0; i< 100; i++)
-        fifo_enqueue(&buffer, i);
+        queue_enqueue(&queue, i);
 
-    fifo_dequeue(&buffer, &i);
-    while (fifo_dequeue(&buffer, &j) == 0) {
+    queue_dequeue(&queue, &i);
+    while (queue_dequeue(&queue, &j) != 0) {
         ++i;
         if (i != j)
             abort();
     }
+    queue_free(&queue);
     printf("Aligned test OK\n");
 
     return 0;

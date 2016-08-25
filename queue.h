@@ -20,86 +20,85 @@
  * SOFTWARE.
  */
 
-#ifndef FIFO_CONTAINER
-#define FIFO_CONTAINER
+#ifndef QUEUE_CONTAINER
+#define QUEUE_CONTAINER
 
-#ifndef __FIFO_INITIAL_SIZE
-#define __FIFO_INITIAL_SIZE 100
+#ifndef __QUEUE_INITIAL_SIZE
+#define __QUEUE_INITIAL_SIZE 100
 #endif
 
 /*
  *
- * A FifoContainer is a dynamic sized circular FIFO buffer.
+ * A QueueContainer is a dynamic sized circular QUEUE buffer.
  *
- * __FIFO_CONTAINER_TYPE macro must be defined from the .c file it is used
+ * __QUEUE_CONTAINER_TYPE macro must be defined from the .c file it is used
  * from.
- * __FIFO_INITIAL_SIZE configure the initial size of the buffer.
+ * __QUEUE_INITIAL_SIZE configure the initial size of the buffer.
  *
- * One .c file can not use more than one fifo_buffer type.
+ * One .c file can not use more than one queue_buffer type.
  *
  * In this code, we add (enqueue) to tail and consume (dequeue) from head.
  *
- * TODO static void fifo_maybe_shrink(FifoContainer*) (maybe).
+ * TODO static void queue_maybe_shrink(QueueContainer*) (maybe).
  *
  */
 
 #include <string.h>
 #include <stdlib.h>
-#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif // __cplusplus
 
-typedef struct FifoContainer {
-    __FIFO_CONTAINER_TYPE* things;
+typedef struct QueueContainer {
+    __QUEUE_CONTAINER_TYPE* things;
     int used;
     int max;
     int tail_position;
     int head_position;
-} FifoContainer;
+} QueueContainer;
 
-FifoContainer fifo_new();
-void fifo_enqueue(FifoContainer*, __FIFO_CONTAINER_TYPE);
-int  fifo_dequeue(FifoContainer*, __FIFO_CONTAINER_TYPE*);
-void fifo_free(FifoContainer*);
-static void fifo_maybe_expand(FifoContainer*);
+QueueContainer queue_new();
+void queue_enqueue(QueueContainer*, __QUEUE_CONTAINER_TYPE);
+int  queue_dequeue(QueueContainer*, __QUEUE_CONTAINER_TYPE*);
+void queue_free(QueueContainer*);
+static void queue_maybe_expand(QueueContainer*);
 
 /*
- * Return a new FifoContainer.
- * Every time FifoContainer reach its max size, it is expanded to twice
+ * Return a new QueueContainer.
+ * Every time QueueContainer reach its max size, it is expanded to twice
  * the current size.
  *
  */
-FifoContainer
-fifo_new()
+QueueContainer
+queue_new()
 {
-    void* things;
-    FifoContainer fifo_buffer;
+    __QUEUE_CONTAINER_TYPE* things;
+    QueueContainer queue_buffer;
 
-    things = malloc(sizeof(__FIFO_CONTAINER_TYPE) * __FIFO_INITIAL_SIZE);
+    things = malloc(sizeof(__QUEUE_CONTAINER_TYPE) * __QUEUE_INITIAL_SIZE);
     if (things == NULL)
         abort();
 
-    fifo_buffer.used = 0;
-    fifo_buffer.max = __FIFO_INITIAL_SIZE;
-    fifo_buffer.tail_position = 0;
-    fifo_buffer.head_position = 0;
-    fifo_buffer.things = things;
+    queue_buffer.used = 0;
+    queue_buffer.max = __QUEUE_INITIAL_SIZE;
+    queue_buffer.tail_position = 0;
+    queue_buffer.head_position = 0;
+    queue_buffer.things = things;
 
-    return fifo_buffer;
+    return queue_buffer;
 }
 
 void
-fifo_free(FifoContainer* buffer)
+queue_free(QueueContainer* buffer)
 {
     free(buffer->things);
 }
 
 void
-fifo_enqueue(
-        FifoContainer*        buffer,
-        __FIFO_CONTAINER_TYPE thing)
+queue_enqueue(
+        QueueContainer*        buffer,
+        __QUEUE_CONTAINER_TYPE thing)
 
 {
     buffer->things[buffer->tail_position] = thing;
@@ -110,17 +109,17 @@ fifo_enqueue(
         buffer->tail_position = 0;
     else
         buffer->tail_position ++;
-    fifo_maybe_expand(buffer);
+    queue_maybe_expand(buffer);
 
 }
 
 int
-fifo_dequeue(
-        FifoContainer*         buffer,
-        __FIFO_CONTAINER_TYPE* value)
+queue_dequeue(
+        QueueContainer*         buffer,
+        __QUEUE_CONTAINER_TYPE* value)
 {
     if (buffer->used == 0)
-        return -1;
+        return 0;
 
     *value = buffer->things[buffer->head_position];
     -- buffer->used;
@@ -131,25 +130,25 @@ fifo_dequeue(
     else
         buffer->head_position ++;
 
-    return 0;
+    return 1;
 }
 
 /*
- * If required, realoc and realign new FifoContainer for the new buffer size.
+ * If required, realoc and realign new QueueContainer for the new buffer size.
  * Realigning meaning puting the head (where we consume from) at buffer[0].
  */
 static
 void
-fifo_maybe_expand(FifoContainer* buffer)
+queue_maybe_expand(QueueContainer* buffer)
 {
     int current_pos, new_size;
-    __FIFO_CONTAINER_TYPE* new_things;
+    __QUEUE_CONTAINER_TYPE* new_things;
 
     if (buffer->used < buffer->max)
         return;
 
     new_size = buffer->max * 2;
-    new_things = malloc(new_size * sizeof(__FIFO_CONTAINER_TYPE));
+    new_things = malloc(new_size * sizeof(__QUEUE_CONTAINER_TYPE));
     if (new_things == NULL)
         abort();
 
@@ -170,11 +169,11 @@ fifo_maybe_expand(FifoContainer* buffer)
         memcpy(
                 &new_things[0],
                 &buffer->things[current_pos],
-                (buffer->max - current_pos) * sizeof(__FIFO_CONTAINER_TYPE));
+                (buffer->max - current_pos) * sizeof(__QUEUE_CONTAINER_TYPE));
         memcpy(
                 &new_things[buffer->max - current_pos],
                 &buffer->things[0],
-                current_pos * sizeof(__FIFO_CONTAINER_TYPE));
+                current_pos * sizeof(__QUEUE_CONTAINER_TYPE));
     } else {
         /* head_position is 0 it must be:
          * [H.........................]
@@ -182,7 +181,7 @@ fifo_maybe_expand(FifoContainer* buffer)
          * (Allready aligned)
          */
         memcpy(&new_things[0], &buffer->things[0],
-                buffer->max * sizeof(__FIFO_CONTAINER_TYPE));
+                buffer->max * sizeof(__QUEUE_CONTAINER_TYPE));
     }
 
     free(buffer->things);
@@ -196,4 +195,4 @@ fifo_maybe_expand(FifoContainer* buffer)
 }
 #endif // __cplusplus
 
-#endif // FIFO_CONTAINER
+#endif // QUEUE_CONTAINER
