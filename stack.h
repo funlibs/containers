@@ -28,18 +28,25 @@
 #endif
 
 #include <stdlib.h>
+#include <stdio.h>
+
+typedef enum ReallocType {
+    SHRINK,
+    EXPAND
+} ReallocType;
 
 typedef struct StackContainer {
     __STACK_CONTAINER_TYPE* things;
     int max;
     int used;
+    int shrink_limit;
 } StackContainer;
 
 StackContainer stack_new();
 void stack_push(StackContainer*, __STACK_CONTAINER_TYPE);
 int  stack_pop(StackContainer*,  __STACK_CONTAINER_TYPE*);
 void stack_free(StackContainer*);
-static void stack_expand(StackContainer*);
+static void stack_realloc(StackContainer*, ReallocType);
 
 /*
  * Return a new StackContainer.
@@ -80,7 +87,7 @@ stack_push(
     ++ buffer->used;
 
     if (buffer->used == buffer->max)
-        stack_expand(buffer);
+        stack_realloc(buffer, EXPAND);
 }
 
 
@@ -95,32 +102,47 @@ stack_pop(
     *value = buffer->things[buffer->used - 1];
     -- buffer->used;
 
+    if (buffer->used < buffer->shrink_limit)
+        stack_realloc(buffer, SHRINK);
+
     return 1;
 }
 
 /*
- * Double the container size
+ * Double or divide by 2 the container size
  */
 static
 void
-stack_expand(StackContainer* buffer)
+stack_realloc(StackContainer* buffer, ReallocType rtype)
 {
     __STACK_CONTAINER_TYPE* new_things;
     size_t new_max;
+    int new_shrink;
 
-    new_max    = 2 * buffer->max * sizeof(__STACK_CONTAINER_TYPE);
-    new_things = realloc(&buffer->things[0], new_max);
+    if (rtype == SHRINK) {
+        printf("shrink\n");
+        new_max = buffer->max / 2;
+    } else {
+        printf("expand\n");
+        new_max = buffer->max * 2;
+    }
+
+    new_things = realloc(
+            &buffer->things[0], new_max * sizeof(__STACK_CONTAINER_TYPE));
 
     if (new_things == NULL) {
         abort();
     }
 
-    if (buffer->things != new_things) {
-        free(buffer->things);
+    if (buffer->things != new_things)
         buffer->things = new_things;
-    }
+
+    new_shrink = new_max / 10;
+    if (new_shrink < __STACK_INITIAL_SIZE)
+        new_shrink = -1;
 
     buffer->max = new_max;
+    buffer->shrink_limit = new_shrink;  // when reached, divide by two
 }
 
 #ifdef __cplusplus

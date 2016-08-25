@@ -63,9 +63,8 @@ run_stack_test()
     stack = stack_new();
     i = 0;
 
-    for (i=0; i < 10; i++) {
+    for (i=0; i < 100000; i++) {
         stack_push(&stack, i);
-        printf("stack %i\n", i);
     }
 
     while (stack_pop(&stack, &j) != 0) {
